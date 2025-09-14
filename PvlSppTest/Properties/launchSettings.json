@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PvlSppTest": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

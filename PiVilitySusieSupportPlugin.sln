@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36408.4
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PvlSsp", "PvlSsp\PvlSsp.csproj", "{23CD5E57-DDC5-4A5D-9CA3-5776F73D0298}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D8618DBB-54CB-4C42-A894-B305289B8383} = {D8618DBB-54CB-4C42-A894-B305289B8383}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvlWin32SpiBridge", "PvlWin32SpiBridge\PvlWin32SpiBridge.vcxproj", "{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PvlSppComm", "PvlSppComm\PvlSppComm.csproj", "{D8618DBB-54CB-4C42-A894-B305289B8383}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PvlSppTest", "PvlSppTest\PvlSppTest.csproj", "{9B070E94-A40C-4EE7-92AC-C37886EF6254}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4} = {3D877960-C46B-4DD0-BB09-8CF4477CC1B4}
+		{D8618DBB-54CB-4C42-A894-B305289B8383} = {D8618DBB-54CB-4C42-A894-B305289B8383}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{23CD5E57-DDC5-4A5D-9CA3-5776F73D0298}.Debug|x64.ActiveCfg = Debug|x64
+		{23CD5E57-DDC5-4A5D-9CA3-5776F73D0298}.Release|x64.ActiveCfg = Release|x64
+		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Debug|x64.ActiveCfg = Debug|Win32
+		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Debug|x64.Build.0 = Debug|Win32
+		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Release|x64.ActiveCfg = Release|Win32
+		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Release|x64.Build.0 = Release|Win32
+		{D8618DBB-54CB-4C42-A894-B305289B8383}.Debug|x64.ActiveCfg = Debug|x64
+		{D8618DBB-54CB-4C42-A894-B305289B8383}.Debug|x64.Build.0 = Debug|x64
+		{D8618DBB-54CB-4C42-A894-B305289B8383}.Release|x64.ActiveCfg = Release|x64
+		{D8618DBB-54CB-4C42-A894-B305289B8383}.Release|x64.Build.0 = Release|x64
+		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Debug|x64.ActiveCfg = Debug|x64
+		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Debug|x64.Build.0 = Debug|x64
+		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Release|x64.ActiveCfg = Release|x64
+		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CB8B4304-F057-4E2E-8D7B-BC664F0A160F}
+	EndGlobalSection
+EndGlobal
