@@ -11,6 +11,9 @@ public:
 	bool Update();
 	int ExitCode() const;
 
+	bool SendNone();
+	bool SendExit();
+
 private:
 	int exitCode_ = -1;
 };

@@ -10,6 +10,7 @@ int WINAPI WinMain(
 	_In_ int nShowCmd)
 {
 	CStandardSession session;
+	session.InitFromStdIo();
 	while (session.Update())
 		;
 		

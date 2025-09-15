@@ -17,11 +17,13 @@ void CSessionMessage::InitIo(HANDLE in, HANDLE out)
 {
 	in_ = in;
 	out_ = out;
-
-	
-		//==FILE_TYPE_PIPE
-
 }
+
+void CSessionMessage::InitFromStdIo()
+{
+	InitIo(GetStdHandle(STD_INPUT_HANDLE), GetStdHandle(STD_OUTPUT_HANDLE));
+}
+
 
 /// <summary>
 /// メッセージの読み込み
@@ -37,7 +39,7 @@ SpiBridgeMessageHeader* CSessionMessage::ReadMessageBase()
 	}
 
 	auto msgBodySize = header->bytes - sizeof(SpiBridgeMessageHeader);
-	if (ReadFile(in_, ((int8_t*)header) + sizeof(*header), msgBodySize, nullptr, nullptr) == false)
+	if (ReadFile(in_, ((int8_t*)header) + sizeof(*header), (DWORD)msgBodySize, nullptr, nullptr) == false)
 	{
 		return nullptr;
 	}
@@ -45,3 +47,9 @@ SpiBridgeMessageHeader* CSessionMessage::ReadMessageBase()
 	return (SpiBridgeMessageHeader*)header;
 
 }
+
+bool CSessionMessage::SendCommMessage(const SpiBridgeMessageHeader& msg)
+{
+	return WriteFile(out_, &msg, msg.bytes, nullptr, nullptr);
+}
+

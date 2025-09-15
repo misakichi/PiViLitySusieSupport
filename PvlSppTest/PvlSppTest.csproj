@@ -10,12 +10,16 @@
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\PvlSppComm\PvlSppComm.csproj" />
-  </ItemGroup>
-
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy $(SolutionDir)PvlWin32SpiBridge\bin\$(Configuration)\*.exe $(TargetDir)" />
   </Target>
+
+  <ItemGroup>
+    <None Remove="PvlSppTest.csproj.Backup.tmp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PvlSppComm\PvlSppComm.vcxproj" />
+  </ItemGroup>
 
 </Project>

@@ -56,10 +56,16 @@ struct SpiBridgeStandardMessageHeader : SpiBridgeMessageHeader
 {
 	static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
 	static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::None;
-
+	void Init()
+	{
+		bytes = sizeof(*this);
+		msgType = MsgType;
+		message = Message;
+	}
 	SpiBridgeStdMessage message;
 
 };
+using SpiBridgeStandardMessageNone = SpiBridgeStandardMessageHeader;
 
 /// <summary>
 /// 新規セッション要求メッセージ
@@ -68,12 +74,24 @@ struct SpiBridgeStandardMessageNewSession : SpiBridgeStandardMessageHeader
 {
 	static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
 	static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::NewSession;
+	void Init()
+	{
+		bytes = sizeof(*this);
+		msgType = MsgType;
+		message = Message;
+	}
 };
 
 struct SpiBridgeStandardMessageCreatedSession : SpiBridgeStandardMessageHeader
 {
 	static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
 	static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::CreatedSession;
+	void Init()
+	{
+		bytes = sizeof(*this);
+		msgType = MsgType;
+		message = Message;
+	}
 	int32_t sessionId;
 	wchar_t namedSuffix[256];
 
@@ -83,6 +101,12 @@ struct SpiBridgeStandardMessageFailedNewSession : SpiBridgeStandardMessageHeader
 {
 	static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
 	static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::FailedNewSession;
+	void Init()
+	{
+		bytes = sizeof(*this);
+		msgType = MsgType;
+		message = Message;
+	}
 	int32_t errorCode;
 };
 
@@ -90,6 +114,12 @@ struct SpiBridgeStandardMessageFreeSession : SpiBridgeStandardMessageHeader
 {
 	static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
 	static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::FreeSession;
+	void Init()
+	{
+		bytes = sizeof(*this);
+		msgType = MsgType;
+		message = Message;
+	}
 	int32_t processId;
 	int32_t sessionId;
 };
@@ -98,6 +128,12 @@ struct SpiBridgeStandardMessageExit : SpiBridgeStandardMessageHeader
 {
 	static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
 	static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::Exit;
+	void Init()
+	{
+		bytes = sizeof(*this);
+		msgType = MsgType;
+		message = Message;
+	}
 };
 #pragma pack(pop) 
 

@@ -3,7 +3,6 @@
 
 CStandardSession::CStandardSession()
 {
-	InitIo(GetStdHandle(STD_INPUT_HANDLE), GetStdHandle(STD_OUTPUT_HANDLE));
 }
 
 CStandardSession::~CStandardSession()
@@ -62,3 +61,24 @@ int CStandardSession::ExitCode() const
 {
 	return exitCode_;
 }
+
+/// <summary>
+/// 何もしないメッセージ送信
+/// </summary>
+bool CStandardSession::SendNone()
+{
+	SpiBridgeStandardMessageNone msg;
+	msg.Init();
+	return SendCommMessage(msg);
+}
+
+/// <summary>
+/// セッションの終了メッセージを送信します。
+/// </summary>
+bool CStandardSession::SendExit()
+{
+	SpiBridgeStandardMessageExit msg;
+	msg.Init();
+	return SendCommMessage(msg);
+}
+

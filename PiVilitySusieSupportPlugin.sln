@@ -4,19 +4,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.14.36408.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PvlSsp", "PvlSsp\PvlSsp.csproj", "{23CD5E57-DDC5-4A5D-9CA3-5776F73D0298}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D8618DBB-54CB-4C42-A894-B305289B8383} = {D8618DBB-54CB-4C42-A894-B305289B8383}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvlWin32SpiBridge", "PvlWin32SpiBridge\PvlWin32SpiBridge.vcxproj", "{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PvlSppComm", "PvlSppComm\PvlSppComm.csproj", "{D8618DBB-54CB-4C42-A894-B305289B8383}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PvlSppTest", "PvlSppTest\PvlSppTest.csproj", "{9B070E94-A40C-4EE7-92AC-C37886EF6254}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4} = {3D877960-C46B-4DD0-BB09-8CF4477CC1B4}
-		{D8618DBB-54CB-4C42-A894-B305289B8383} = {D8618DBB-54CB-4C42-A894-B305289B8383}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvlSppComm", "PvlSppComm\PvlSppComm.vcxproj", "{D2249F88-927B-3DF4-C9C3-7E6A3BA542D8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BridgeICommShared", "BridgeICommShared\BridgeICommShared.vcxitems", "{696C5A69-5C0C-4756-87DB-D652F0F6B204}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,19 +28,24 @@ Global
 		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Debug|x64.Build.0 = Debug|Win32
 		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Release|x64.ActiveCfg = Release|Win32
 		{3D877960-C46B-4DD0-BB09-8CF4477CC1B4}.Release|x64.Build.0 = Release|Win32
-		{D8618DBB-54CB-4C42-A894-B305289B8383}.Debug|x64.ActiveCfg = Debug|x64
-		{D8618DBB-54CB-4C42-A894-B305289B8383}.Debug|x64.Build.0 = Debug|x64
-		{D8618DBB-54CB-4C42-A894-B305289B8383}.Release|x64.ActiveCfg = Release|x64
-		{D8618DBB-54CB-4C42-A894-B305289B8383}.Release|x64.Build.0 = Release|x64
 		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Debug|x64.ActiveCfg = Debug|x64
 		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Debug|x64.Build.0 = Debug|x64
 		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Release|x64.ActiveCfg = Release|x64
 		{9B070E94-A40C-4EE7-92AC-C37886EF6254}.Release|x64.Build.0 = Release|x64
+		{D2249F88-927B-3DF4-C9C3-7E6A3BA542D8}.Debug|x64.ActiveCfg = Debug|x64
+		{D2249F88-927B-3DF4-C9C3-7E6A3BA542D8}.Debug|x64.Build.0 = Debug|x64
+		{D2249F88-927B-3DF4-C9C3-7E6A3BA542D8}.Release|x64.ActiveCfg = Release|x64
+		{D2249F88-927B-3DF4-C9C3-7E6A3BA542D8}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CB8B4304-F057-4E2E-8D7B-BC664F0A160F}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		BridgeICommShared\BridgeICommShared.vcxitems*{3d877960-c46b-4dd0-bb09-8cf4477cc1b4}*SharedItemsImports = 4
+		BridgeICommShared\BridgeICommShared.vcxitems*{696c5a69-5c0c-4756-87db-d652f0f6b204}*SharedItemsImports = 9
+		BridgeICommShared\BridgeICommShared.vcxitems*{d2249f88-927b-3df4-c9c3-7e6a3ba542d8}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal
