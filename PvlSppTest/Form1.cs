@@ -4,9 +4,10 @@ namespace PvlSppTest
 {
     public partial class Form1 : Form
     {
-        StandardComms _standardComms = new();
+        StandardComms _standardComms;
         public Form1()
         {
+            _standardComms = new();
             InitializeComponent();
         }
 
@@ -20,10 +21,10 @@ namespace PvlSppTest
 
             _standardComms.Initialize();
         }
-
-        protected override void OnClosed(EventArgs e)
+        
+        protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            base.OnClosed(e);
+            base.OnFormClosed(e);
             _standardComms.Terminate();
             while (_standardComms.IsRunning)
                 System.Threading.Thread.Sleep(1000);
@@ -36,7 +37,7 @@ namespace PvlSppTest
                 MessageBox.Show("IPC process don't runnning.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
+            _standardComms.SendNewSession();
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)

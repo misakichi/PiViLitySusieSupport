@@ -1,19 +1,13 @@
 #pragma once
-
-class CStandardSession;
-
+namespace  PvlIpc
+{
+	class CInstanceSession;
+	class CStandardSession;
+	class Pipe;
+}
 namespace PvlSppComm
 {
-	class Pipe
-	{
-	public:
-		Pipe();
-		~Pipe();
-		HANDLE write_;
-		HANDLE read_;
-	};
-
-	public ref class StandardComms 
+	public ref class StandardComms
 	{
 	public:
 		StandardComms();
@@ -22,16 +16,17 @@ namespace PvlSppComm
 
 		bool SendNone();
 		bool SendExit();
+		bool SendNewSession();
 
-		property bool IsRunning { bool get() { return isRunnning_; } }
+
+		property bool IsRunning{ bool get() { return isRunnning_; } }
+
+		void RecieveNewSession(PvlIpc::CInstanceSession*);
+
 	private:
-		Pipe*	pipeErr_ = NULL;
-		Pipe*	pipeIn_ = NULL;
-		Pipe*	pipeOut_ = NULL;
+		PvlIpc::Pipe* ioPipe_ = NULL;
 		HANDLE	process_ = NULL;
 		bool	isRunnning_ = false;
-		CStandardSession* session_ = nullptr;
+		PvlIpc::CStandardSession* session_ = nullptr;
 	};
-
-
 }

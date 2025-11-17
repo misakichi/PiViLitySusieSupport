@@ -17,7 +17,7 @@
     <Keyword>NetCoreCProj</Keyword>
     <RootNamespace>PvlSppComm</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <WindowsTargetPlatformMinVersion>7.0</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -79,6 +79,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="InstanceComms.h" />
     <ClInclude Include="PvlSppComm.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StandardComms.h" />
@@ -86,6 +87,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
+    <ClCompile Include="InstanceComms.cpp" />
     <ClCompile Include="PvlSppComm.cpp" />
     <ClCompile Include="StandardComms.cpp" />
     <ClCompile Include="stdafx.cpp">

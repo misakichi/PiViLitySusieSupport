@@ -1,52 +1,61 @@
 #include "stdafx.h"
 #include "StandardComms.h"
 
+#include "InstanceComms.h"
 #include "BridgeMessage.h"
 #include "StandardSession.h"
+#include <thread>
 
 using namespace PvlSppComm;
-
-Pipe::Pipe()
-{
-	SECURITY_ATTRIBUTES sa = { sizeof(sa), nullptr, TRUE };
-	CreatePipe(&read_, &write_, &sa, 0);
-}
-
-Pipe::~Pipe()
-{
-	CloseHandle(read_);
-	CloseHandle(write_);
-}
+using namespace System::Runtime::InteropServices;
 
 
 StandardComms::StandardComms()
 {
 }
 
+static void s_callbackFunc(PvlIpc::CInstanceSession* newClientSession, void* arg)
+{
+    auto handle = GCHandle::FromIntPtr((System::IntPtr)arg);
+    auto comms = safe_cast<StandardComms^>(handle.Target);
+    comms->RecieveNewSession(newClientSession);
+}
+
 bool StandardComms::Initialize()
 {
 	if (isRunnning_)
 		return false;
+    
+    const wchar_t * pipeBaseName = L"\\\\.\\pipe\\PvlSppComm_In_";
+    wchar_t inReadName[256];
+    wchar_t inWriteName[256];
+    auto curProcID = GetCurrentProcessId();
+	swprintf_s(inReadName, L"%s%08x_ServerRead", pipeBaseName, curProcID);
+	swprintf_s(inWriteName, L"%s%08x_ServerWrite", pipeBaseName, curProcID);
 
-	pipeIn_ = new Pipe();
-	pipeOut_ = new Pipe();
-	//pipeErr_ = new Pipe();
+	ioPipe_ = new PvlIpc::Pipe(inReadName, inWriteName, true);
 
     STARTUPINFOW si = {};
     si.cb =sizeof(si);
     si.dwFlags |= STARTF_USESTDHANDLES;
-    si.hStdOutput = pipeOut_->write_;
-    si.hStdInput = pipeIn_->read_;
-    //si.hStdError = pipeErr_->write_;
 
     PROCESS_INFORMATION pi = {};
 
-    const wchar_t* cmd = L"PvlWin32SpiBridge.exe";
-    wchar_t command[MAX_PATH];
-    wcscpy_s(command, cmd);
+	OVERLAPPED olIn = {};
+	olIn.Internal = STATUS_PENDING;
+	olIn.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+
+    OVERLAPPED olOut = {};
+    olOut.Internal = STATUS_PENDING;
+    olOut.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    auto ret1 = ConnectNamedPipe(ioPipe_->read_, &olIn);
+	auto ret2 = ConnectNamedPipe(ioPipe_->write_, &olOut);
+
+    wchar_t cmd[2048];
+    swprintf_s(cmd, L"PvlWin32SpiBridge.exe -i=%s -o=%s -dbgConsole -is-overlap", inWriteName, inReadName);
     isRunnning_ = CreateProcessW(
         nullptr,
-        command,
+        cmd,
         nullptr,
         nullptr,
         TRUE,
@@ -58,14 +67,28 @@ bool StandardComms::Initialize()
     );
     if (isRunnning_)
     {
+		WaitForSingleObject(olIn.hEvent, 2*1000);
+        WaitForSingleObject(olOut.hEvent, 0);
+		CloseHandle(olIn.hEvent);
+		CloseHandle(olOut.hEvent);
+
         CloseHandle(pi.hThread);
         process_ = pi.hProcess;
-        session_ = new CStandardSession();
-        session_->InitIo(pipeOut_->read_, pipeIn_->write_);
+        session_ = new PvlIpc::CStandardSession();
+        GCHandle thisHandle = GCHandle::Alloc(this);
+
+		session_->SetNewSessionResultCallback(s_callbackFunc, GCHandle::ToIntPtr(thisHandle).ToPointer());
+        session_->InitIo(ioPipe_->read_, ioPipe_->write_, true);
+    }
+    else
+    {
+        CloseHandle(olIn.hEvent);
+        CloseHandle(olOut.hEvent);
     }
 
 
 	return isRunnning_;
+	return false;
 }
 
 bool StandardComms::Terminate()
@@ -76,13 +99,9 @@ bool StandardComms::Terminate()
 
         WaitForSingleObject(process_, 60 * 1000);//1 minites
         delete session_;
-        delete pipeIn_;
-        delete pipeOut_;
-        delete pipeErr_;
+        delete ioPipe_;
         CloseHandle(process_);
-        pipeIn_ = nullptr;
-        pipeOut_ = nullptr;
-        pipeErr_ = nullptr;
+        ioPipe_ = nullptr;
         process_ = nullptr;
         session_ = nullptr;
         isRunnning_ = false;
@@ -99,4 +118,14 @@ bool StandardComms::SendNone()
 bool StandardComms::SendExit()
 {
     return session_->SendExit();
+}
+bool StandardComms::SendNewSession()
+{
+    return session_->SendNewSession();
+}
+
+void StandardComms::RecieveNewSession(PvlIpc::CInstanceSession* newInstance)
+{
+//	auto client = gcnew InstanceComms();
+//    client->
 }

@@ -15,10 +15,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)BridgeMessage.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)InstanceSession.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)SessionMessage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)StandardSession.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)InstanceSession.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SessionMessage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StandardSession.cpp" />
   </ItemGroup>
