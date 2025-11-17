@@ -6,6 +6,7 @@ namespace PvlIpc
 {
 	class CInstanceSession;
 	using NewSessionResultCallback = void(*)(CInstanceSession* newClientSession, void* arg);
+	using NewSessionCreateCallback = CInstanceSession*(*)(void* arg);
 
 	/// <summary>
 	/// IPCPメインセッション用メッセージ処理クラス
@@ -13,10 +14,12 @@ namespace PvlIpc
 	class CStandardSession : public CSessionMessage
 	{
 	public:
+		using Base = CSessionMessage;
+
 		CStandardSession();
 		~CStandardSession();
 		SpiBridgeStandardMessageHeader* ReadMessage();
-		bool Update();
+
 		int ExitCode() const;
 
 		/// <summary>
@@ -57,6 +60,20 @@ namespace PvlIpc
 			newSessionResultCallbackArg_ = p;
 		}
 
+		/// <summary>
+		/// インスタンスセッション作成コールバックの設定
+		/// </summary>
+		/// <param name="callback"></param>
+		/// <param name="p"></param>
+		void SetNewSessionCreateCallback(NewSessionCreateCallback callback, void* p)
+		{
+			newSessionCreateCallback_ = callback;
+			newSessionCreateCallbackArg_ = p;
+		}
+
+	protected:
+		SessionUpdateResult UpdateInner(SpiBridgeStandardMessageHeader* msg) override;
+
 	private:
 		static DWORD __stdcall SessionThreadEntry(void* p);
 
@@ -69,6 +86,11 @@ namespace PvlIpc
 		//セッション生成応答のコールバック
 		NewSessionResultCallback	newSessionResultCallback_ = nullptr;
 		void*						newSessionResultCallbackArg_ = nullptr;
+
+		//セッション作成用コールバック
+		NewSessionCreateCallback	newSessionCreateCallback_ = nullptr;
+		void*						newSessionCreateCallbackArg_ = nullptr;
+
 	};
 
 } //PvlIpc

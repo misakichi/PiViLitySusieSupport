@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
-#include "BridgeMessage.h"
-#include "StandardSession.h"
+#include "Session/BridgeMessage.h"
+#include "Session/StandardSession.h"
 #include <vector>
 #include <string>
 #include <stdio.h>
@@ -87,7 +87,6 @@ int WINAPI WinMain(
 
 	printf("inPipeName=%s\n", inPipeName ? inPipeName : "(null)");
 	printf("outPipeName=%s\n", outPipeName ? outPipeName : "(null)");
-	getchar(); // 入力待ち
 
 
 	HANDLE inPipe = NULL;
@@ -115,8 +114,7 @@ int WINAPI WinMain(
 			NULL);
 		auto outResult = GetLastError();
 
-		printf("Connecting to pipes(%s) \n In=0x%08x(0x%08x)\n Out=0x%08x(0x%08x)\n", withOverlap!=0 ? "overlaped" : "", inPipe, inResult, outPipe, outResult);
-		getchar();
+		printf("Connecting to pipes(%s) \n In=0x%p(0x%08x)\n Out=0x%p(0x%08x)\n", withOverlap!=0 ? "overlaped" : "", inPipe, inResult, outPipe, outResult);
 
 		session.InitIo(inPipe, outPipe, withOverlap != 0);
 	}
@@ -125,7 +123,7 @@ int WINAPI WinMain(
 		session.InitFromStdIo();
 	}
 	delete[] cmdLineStr;
-	while (session.Update())
+	while (session.Update()==PvlIpc::SessionUpdateResult::Succcess)
 		;
 
 	FreeConsole();
@@ -133,8 +131,5 @@ int WINAPI WinMain(
 	//メッセージ切れによる終了は不正
 	auto exitCode =  session.ExitCode();
 
-	//fflush(stdout);
-	//setvbuf(stdout, NULL, _IONBF, 0);
-	//delete[]lbuf;
 	return exitCode;
 }

@@ -1,55 +1,21 @@
 #pragma once
 #include <vector>
+#include "CriticalSection.h"
 
 namespace PvlIpc
 {
 
 	struct SpiBridgeMessageHeader;
+	struct SpiBridgeStandardMessageHeader;
 
-	class Pipe
+	enum class SessionUpdateResult : int
 	{
-	public:
-		Pipe();
-		Pipe(const char* readName, const char* writeName, bool isOverlaped);
-		Pipe(const wchar_t* readName, const wchar_t* writeName, bool isOverlaped);
-		~Pipe();
-		HANDLE write_;
-		HANDLE read_;
-		bool isOverlaped_ = false;
+		Succcess = 0,
+		Exit,
+		Unknown = (int)0x80000000,
+		NoneMessage,
+		InvlidMessageType,
 	};
-
-
-	class CCriticalSection
-	{
-	public:
-		CCriticalSection();
-		~CCriticalSection();
-		void Enter();
-		void Leave();
-
-		//std::lock_guard用
-		inline void lock() { Enter(); }
-		inline void unlock() { Leave(); }
-	private:
-		CRITICAL_SECTION cs_;
-	};
-
-	class CCriticalSectionLock
-	{
-	public:
-		CCriticalSectionLock(CCriticalSection& cs) : cs_(cs)
-		{
-			cs_.Enter();
-		}
-		~CCriticalSectionLock()
-		{
-			cs_.Leave();
-		}
-	private:
-		CCriticalSection& cs_;
-	};
-
-
 
 	/// <summary>
 	/// IPCセッションメッセージ基底クラス
@@ -62,6 +28,7 @@ namespace PvlIpc
 		void InitFromStdIo();
 		void InitIo(HANDLE _read, HANDLE _write, bool isOverlaped);
 		void SetEnableDebug(bool enable) { debug_ = true; }
+		SessionUpdateResult Update();
 
 	protected:
 		SpiBridgeMessageHeader* ReadMessageBase();
@@ -70,6 +37,8 @@ namespace PvlIpc
 
 		OVERLAPPED* GetOverlapped();
 		void ReleaseOverlapped(OVERLAPPED* ol);
+
+		virtual SessionUpdateResult UpdateInner(SpiBridgeStandardMessageHeader* msg);
 
 	protected:
 		HANDLE	read_;

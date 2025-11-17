@@ -14,14 +14,18 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)BridgeMessage.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)InstanceSession.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)SessionMessage.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)StandardSession.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)CriticalSection.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Pipe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Session\BridgeMessage.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Session\InstanceSession.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Session\SessionMessage.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Session\StandardSession.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)InstanceSession.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SessionMessage.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)StandardSession.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CriticalSection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Pipe.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Session\InstanceSession.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Session\SessionMessage.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Session\StandardSession.cpp" />
   </ItemGroup>
 </Project>

@@ -47,13 +47,11 @@ DWORD __stdcall CStandardSession::SessionThreadEntry(void* p)
 /// <returns>
 /// true: continue, false: exit
 /// </returns>
-bool CStandardSession::Update()
+SessionUpdateResult CStandardSession::UpdateInner(SpiBridgeStandardMessageHeader* msg)
 {
-	auto msg = ReadMessage();
-
 	if (msg->message == SpiBridgeStandardMessageHeader::Message)
 	{
-		return true;
+		return SessionUpdateResult::Succcess;
 	}
 	else if (auto newSessionMsg = msg->Cast<SpiBridgeStandardMessageNewSession>())
 	{
@@ -80,7 +78,7 @@ bool CStandardSession::Update()
 				delete instance;
 			}
 		}
-		return true;
+		return SessionUpdateResult::Succcess;
 	}
 	else if (auto createdSession = msg->Cast<SpiBridgeStandardMessageResponseCreatedSession>())
 	{
@@ -91,7 +89,7 @@ bool CStandardSession::Update()
 			Name256Buffer inName, outName;
 			CraetePipeName(procId, createdSession->inId, L"_InBridgePipe", inName);
 			CraetePipeName(procId, createdSession->outId, L"_InBridgePipe", outName);
-			auto instance = new CInstanceSession();
+			auto instance = newSessionCreateCallback_ ? newSessionCreateCallback_(newSessionCreateCallbackArg_) : new CInstanceSession();
 			if(instance->InitClient(inName.data(), outName.data(), true))
 			{
 				newSessionResultCallback_(instance, newSessionResultCallbackArg_);
@@ -102,6 +100,7 @@ bool CStandardSession::Update()
 				newSessionResultCallback_(nullptr, newSessionResultCallbackArg_);
 			}
 		}
+		return SessionUpdateResult::Succcess;
 	}
 	else if (auto failedSession = msg->Cast<SpiBridgeStandardMessageResponseFailedNewSession>())
 	{
@@ -110,19 +109,22 @@ bool CStandardSession::Update()
 		{
 			newSessionResultCallback_(nullptr, newSessionResultCallbackArg_);
 		}
+		return SessionUpdateResult::Succcess;
 	}
 	else if (auto freeSessionMsg = msg->Cast<SpiBridgeStandardMessageFreeSession>())
 	{
 		//セッション解放
-		return true;
+		return SessionUpdateResult::Succcess;
 	}
 	else if (auto exitMsg = msg->Cast<SpiBridgeStandardMessageExit>())
 	{
 		//終了
 		exitCode_ = 0;
-		return false;
+		return SessionUpdateResult::Exit;
 	}
-	return msg != nullptr;
+	
+	return Base::UpdateInner(msg);
+
 }
 
 /// <summary>

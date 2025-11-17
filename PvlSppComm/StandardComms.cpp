@@ -2,8 +2,9 @@
 #include "StandardComms.h"
 
 #include "InstanceComms.h"
-#include "BridgeMessage.h"
-#include "StandardSession.h"
+#include "Session/BridgeMessage.h"
+#include "Session/StandardSession.h"
+#include "Pipe.h"
 #include <thread>
 
 using namespace PvlSppComm;
