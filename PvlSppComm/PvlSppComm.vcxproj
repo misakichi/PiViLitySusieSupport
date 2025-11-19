@@ -82,6 +82,7 @@
     <ClInclude Include="InstanceComms.h" />
     <ClInclude Include="PvlSppComm.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SpiInstanceComms.h" />
     <ClInclude Include="StandardComms.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
@@ -89,6 +90,7 @@
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="InstanceComms.cpp" />
     <ClCompile Include="PvlSppComm.cpp" />
+    <ClCompile Include="SpiInstanceComms.cpp" />
     <ClCompile Include="StandardComms.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

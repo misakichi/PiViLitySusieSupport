@@ -19,6 +19,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\BridgeMessage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\InstanceSession.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\SessionMessage.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\StandardSession.h" />
   </ItemGroup>
   <ItemGroup>
@@ -26,6 +27,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Pipe.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\InstanceSession.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\SessionMessage.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\StandardSession.cpp" />
   </ItemGroup>
 </Project>

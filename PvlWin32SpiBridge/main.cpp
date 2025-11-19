@@ -55,23 +55,16 @@ int WINAPI WinMain(
 	printf("Input something: ");
 
 
-	const char*inPipeName = nullptr;
-	const char* outPipeName = nullptr;
+	const char* pipeName = nullptr;
 	int withOverlap = 0;
 	for(auto arg : args)
 	{
-		constexpr auto prefixIn = "-i=";
-		constexpr auto prefixOut = "-o=";
+		constexpr auto prefixPipe = "-pipe=";
 		constexpr auto prefixDbg = "-dbgConsole";
 		constexpr auto prefixOverlap = "-is-overlap";
-		if (strncmp(arg, prefixIn, strlen(prefixIn)) == 0)
+		if (strncmp(arg, prefixPipe, strlen(prefixPipe)) == 0)
 		{
-			inPipeName = arg + strlen(prefixIn);
-			continue;
-		}
-		else if (strncmp(arg, prefixOut, strlen(prefixOut)) == 0)
-		{
-			outPipeName = arg + strlen(prefixOut);
+			pipeName = arg + strlen(prefixPipe);
 			continue;
 		}
 		else if (strncmp(arg, prefixDbg, strlen(prefixDbg)) == 0)
@@ -85,45 +78,33 @@ int WINAPI WinMain(
 		}
 	}
 
-	printf("inPipeName=%s\n", inPipeName ? inPipeName : "(null)");
-	printf("outPipeName=%s\n", outPipeName ? outPipeName : "(null)");
+	printf("PipeName=%s\n", pipeName ? pipeName : "(null)");
 
 
-	HANDLE inPipe = NULL;
-	HANDLE outPipe = NULL;
-	if (inPipeName && outPipeName)
+	HANDLE pipeIo = NULL;
+	if (pipeName)
 	{
-		printf("Connecting to pipes In=%s, Out=%s\n", inPipeName, outPipeName);
-		inPipe = CreateFileA(
-			inPipeName,
-			GENERIC_READ,
+		printf("Connecting to pipe %s\n", pipeName);
+		pipeIo = CreateFileA(
+			pipeName,
+			GENERIC_READ | GENERIC_WRITE,
 			0,
 			NULL,
 			OPEN_EXISTING,
 			withOverlap,
 			NULL);
-		auto inResult = GetLastError();
+		auto result = GetLastError();
 
-		outPipe = CreateFileA(
-			outPipeName,
-			GENERIC_WRITE,
-			0,
-			NULL,
-			OPEN_EXISTING,
-			withOverlap,
-			NULL);
-		auto outResult = GetLastError();
+		printf("Connecting to pipes(%s) \n 0x%p(0x%08x)\n", withOverlap!=0 ? "overlaped" : "", pipeIo, result);
 
-		printf("Connecting to pipes(%s) \n In=0x%p(0x%08x)\n Out=0x%p(0x%08x)\n", withOverlap!=0 ? "overlaped" : "", inPipe, inResult, outPipe, outResult);
-
-		session.InitIo(inPipe, outPipe, withOverlap != 0);
+		session.InitIo(pipeIo, pipeIo, withOverlap != 0);
 	}
 	else
 	{
 		session.InitFromStdIo();
 	}
 	delete[] cmdLineStr;
-	while (session.Update()==PvlIpc::SessionUpdateResult::Succcess)
+	while (session.Update()==PvlIpc::SessionUpdateResult::Enum::Succcess)
 		;
 
 	FreeConsole();

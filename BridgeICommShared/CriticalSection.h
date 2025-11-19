@@ -3,7 +3,7 @@
 namespace PvlIpc
 {
 
-	struct SpiBridgeMessageHeader;
+	struct SessionMessageHeader;
 
 
 	class CCriticalSection

@@ -18,6 +18,11 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\StandardSession.h">
       <Filter>Session</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)CriticalSection.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Pipe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.h">
+      <Filter>Session</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\InstanceSession.cpp">
@@ -27,6 +32,11 @@
       <Filter>Session</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\StandardSession.cpp">
+      <Filter>Session</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)CriticalSection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Pipe.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.cpp">
       <Filter>Session</Filter>
     </ClCompile>
   </ItemGroup>

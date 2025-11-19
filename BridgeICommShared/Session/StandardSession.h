@@ -18,7 +18,7 @@ namespace PvlIpc
 
 		CStandardSession();
 		~CStandardSession();
-		SpiBridgeStandardMessageHeader* ReadMessage();
+		StandardSessionMessageHeader* ReadMessage();
 
 		int ExitCode() const;
 
@@ -72,7 +72,7 @@ namespace PvlIpc
 		}
 
 	protected:
-		SessionUpdateResult UpdateInner(SpiBridgeStandardMessageHeader* msg) override;
+		SessionUpdateResult UpdateInner(SessionMessageHeader* msg) override;
 
 	private:
 		static DWORD __stdcall SessionThreadEntry(void* p);

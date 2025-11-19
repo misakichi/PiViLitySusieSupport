@@ -1,9 +1,11 @@
 #include "stdafx.h"
 #include "StandardComms.h"
-
 #include "InstanceComms.h"
+#include "SpiInstanceComms.h"
+
 #include "Session/BridgeMessage.h"
 #include "Session/StandardSession.h"
+#include "Session/SpiInstanceSession.h"
 #include "Pipe.h"
 #include <thread>
 
@@ -22,19 +24,30 @@ static void s_callbackFunc(PvlIpc::CInstanceSession* newClientSession, void* arg
     comms->RecieveNewSession(newClientSession);
 }
 
+DWORD __stdcall StandardSessionThreadEntry(void* p)
+{
+    auto session = ((PvlIpc::CStandardSession*)p);
+    while (session->Update().IsFailed() == false)
+    {
+    }
+    delete session;
+	return 0;
+}
+
 bool StandardComms::Initialize()
 {
 	if (isRunnning_)
 		return false;
     
     const wchar_t * pipeBaseName = L"\\\\.\\pipe\\PvlSppComm_In_";
-    wchar_t inReadName[256];
-    wchar_t inWriteName[256];
+    wchar_t name[256];
     auto curProcID = GetCurrentProcessId();
-	swprintf_s(inReadName, L"%s%08x_ServerRead", pipeBaseName, curProcID);
-	swprintf_s(inWriteName, L"%s%08x_ServerWrite", pipeBaseName, curProcID);
+	swprintf_s(name, L"%s%08x", pipeBaseName, curProcID);
 
-	ioPipe_ = new PvlIpc::Pipe(inReadName, inWriteName, true);
+    PvlIpc::PipeCreateOptions options;
+	options.isOverlaped = true;
+	auto pipe = new PvlIpc::Pipe();
+    pipe->Create(name, &options);
 
     STARTUPINFOW si = {};
     si.cb =sizeof(si);
@@ -42,18 +55,13 @@ bool StandardComms::Initialize()
 
     PROCESS_INFORMATION pi = {};
 
-	OVERLAPPED olIn = {};
-	olIn.Internal = STATUS_PENDING;
-	olIn.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-
-    OVERLAPPED olOut = {};
-    olOut.Internal = STATUS_PENDING;
-    olOut.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-    auto ret1 = ConnectNamedPipe(ioPipe_->read_, &olIn);
-	auto ret2 = ConnectNamedPipe(ioPipe_->write_, &olOut);
+	OVERLAPPED overlap = {};
+    overlap.Internal = STATUS_PENDING;
+    overlap.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    auto ret1 = ConnectNamedPipe(*pipe, &overlap);
 
     wchar_t cmd[2048];
-    swprintf_s(cmd, L"PvlWin32SpiBridge.exe -i=%s -o=%s -dbgConsole -is-overlap", inWriteName, inReadName);
+    swprintf_s(cmd, L"PvlWin32SpiBridge.exe -pipe=%s -dbgConsole -is-overlap", name);
     isRunnning_ = CreateProcessW(
         nullptr,
         cmd,
@@ -68,10 +76,8 @@ bool StandardComms::Initialize()
     );
     if (isRunnning_)
     {
-		WaitForSingleObject(olIn.hEvent, 2*1000);
-        WaitForSingleObject(olOut.hEvent, 0);
-		CloseHandle(olIn.hEvent);
-		CloseHandle(olOut.hEvent);
+		WaitForSingleObject(overlap.hEvent, 2*1000);
+		CloseHandle(overlap.hEvent);
 
         CloseHandle(pi.hThread);
         process_ = pi.hProcess;
@@ -79,12 +85,16 @@ bool StandardComms::Initialize()
         GCHandle thisHandle = GCHandle::Alloc(this);
 
 		session_->SetNewSessionResultCallback(s_callbackFunc, GCHandle::ToIntPtr(thisHandle).ToPointer());
-        session_->InitIo(ioPipe_->read_, ioPipe_->write_, true);
+        session_->InitIo(*pipe, true);
+        ioPipe_ = pipe;
+		//_beginthreadex(nullptr, 0, StandardSessionThreadEntry, session_, 0, nullptr);
+		auto th = CreateThread(nullptr, 0, StandardSessionThreadEntry, session_, 0, nullptr);
+		SetThreadDescription(th, L"PvlSppComm::StandardComms::SessionThread");
     }
     else
     {
-        CloseHandle(olIn.hEvent);
-        CloseHandle(olOut.hEvent);
+        delete pipe;
+        CloseHandle(overlap.hEvent);
     }
 
 
@@ -127,6 +137,10 @@ bool StandardComms::SendNewSession()
 
 void StandardComms::RecieveNewSession(PvlIpc::CInstanceSession* newInstance)
 {
-//	auto client = gcnew InstanceComms();
-//    client->
+    if (auto spiSession = dynamic_cast<PvlIpc::CSpiInstanceSession*>(newInstance))
+    {
+        auto spiComms = gcnew SpiInstanceComms(spiSession);
+        OnReciveNewSession(spiComms);
+    }
 }
+

@@ -8,7 +8,12 @@ namespace PvlSppTest
         public Form1()
         {
             _standardComms = new();
+            _standardComms.OnReciveNewSession += (s) =>
+            {
+                _lstSessions.Items.Add($"New Session: {s}");
+            };
             InitializeComponent();
+
         }
 
 

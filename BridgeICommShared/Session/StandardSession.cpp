@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "StandardSession.h"
-#include "InstanceSession.h"
+#include "SpiInstanceSession.h"
 
 #pragma comment(lib, "Ole32.lib")
 
@@ -18,10 +18,10 @@ CStandardSession::~CStandardSession()
 /// メッセージの読み取り
 /// </summary>
 /// <returns></returns>
-SpiBridgeStandardMessageHeader* CStandardSession::ReadMessage()
+StandardSessionMessageHeader* CStandardSession::ReadMessage()
 {
 	auto msg = ReadMessageBase();
-	return msg ? msg->Cast<SpiBridgeStandardMessageHeader>() : nullptr;
+	return msg ? msg->Cast<StandardSessionMessageHeader>() : nullptr;
 }
 
 struct SessionInfo
@@ -32,7 +32,7 @@ struct SessionInfo
 DWORD __stdcall CStandardSession::SessionThreadEntry(void* p)
 {
 	auto instance = ((CInstanceSession*)p);
-	while (instance->Update())
+	while (instance->Update().IsFailed()==false)
 	{
 	}
 	delete instance;
@@ -47,26 +47,30 @@ DWORD __stdcall CStandardSession::SessionThreadEntry(void* p)
 /// <returns>
 /// true: continue, false: exit
 /// </returns>
-SessionUpdateResult CStandardSession::UpdateInner(SpiBridgeStandardMessageHeader* msg)
+SessionUpdateResult CStandardSession::UpdateInner(SessionMessageHeader* _msg)
 {
-	if (msg->message == SpiBridgeStandardMessageHeader::Message)
+	auto msg = _msg->Cast<StandardSessionMessageHeader>();
+	if (msg->message == StandardSessionMessageHeader::Message)
 	{
-		return SessionUpdateResult::Succcess;
+		return SessionUpdateResult::Enum::Succcess;
 	}
-	else if (auto newSessionMsg = msg->Cast<SpiBridgeStandardMessageNewSession>())
+	else if (auto newSessionMsg = msg->Cast<StandardSessionMessageNewSession>())
 	{
+		DebugPrint(L"New Session Request.\n");
 		//新規セッション
 		auto inId = sessionId_++;
 		auto outId = sessionId_++;
 		auto procId = GetCurrentProcessId();
-		Name256Buffer inName, outName;
-		bool named = CraetePipeName(procId, inId, L"_InBridgePipe", inName);
-		named &= CraetePipeName(procId, outId, L"_InBridgePipe", outName);
+		Name256Buffer name;
+		bool named = CraetePipeName(procId, inId, L"_BridgePipe", name);
 		if (named)
 		{
-			auto instance = new CInstanceSession();
-			if(instance->InitServer(inName.data(), outName.data(), true))
+			DebugPrint(L"Create Session Server Pipe(%s).\n", name.data());
+			auto instance = new CSpiInstanceSession();
+			instance->SetEnableDebug(debug_);
+			if(instance->InitServer(name.data(), true))
 			{
+				DebugPrint(L"Server Initialized.\n");
 				//サーバーは用意ができたので、処理スレッドを立ち上げて成功を返す
 				CreateThread(NULL, 0, SessionThreadEntry, instance, 0, NULL);
 				if (SendResponseCreatedSession(procId, inId, outId))
@@ -75,22 +79,23 @@ SessionUpdateResult CStandardSession::UpdateInner(SpiBridgeStandardMessageHeader
 			}
 			else
 			{
+				DebugPrint(L"Failed Server Init.\n");
 				delete instance;
 			}
 		}
-		return SessionUpdateResult::Succcess;
+		return SessionUpdateResult::Enum::Succcess;
 	}
-	else if (auto createdSession = msg->Cast<SpiBridgeStandardMessageResponseCreatedSession>())
+	else if (auto createdSession = msg->Cast<StandardSessionMessageResponseCreatedSession>())
 	{
+		DebugPrint(L"New Session Created Response.\n");
 		//セッション作成応答
 		if (newSessionResultCallback_)
 		{
 			auto procId = createdSession->procId;
-			Name256Buffer inName, outName;
-			CraetePipeName(procId, createdSession->inId, L"_InBridgePipe", inName);
-			CraetePipeName(procId, createdSession->outId, L"_InBridgePipe", outName);
-			auto instance = newSessionCreateCallback_ ? newSessionCreateCallback_(newSessionCreateCallbackArg_) : new CInstanceSession();
-			if(instance->InitClient(inName.data(), outName.data(), true))
+			Name256Buffer name;
+			CraetePipeName(procId, createdSession->inId, L"_BridgePipe", name);
+			auto instance = newSessionCreateCallback_ ? newSessionCreateCallback_(newSessionCreateCallbackArg_) : new CSpiInstanceSession();
+			if(instance->InitClient(name.data(), true))
 			{
 				newSessionResultCallback_(instance, newSessionResultCallbackArg_);
 			}
@@ -100,27 +105,30 @@ SessionUpdateResult CStandardSession::UpdateInner(SpiBridgeStandardMessageHeader
 				newSessionResultCallback_(nullptr, newSessionResultCallbackArg_);
 			}
 		}
-		return SessionUpdateResult::Succcess;
+		return SessionUpdateResult::Enum::Succcess;
 	}
-	else if (auto failedSession = msg->Cast<SpiBridgeStandardMessageResponseFailedNewSession>())
+	else if (auto failedSession = msg->Cast<StandardSessionMessageResponseFailedNewSession>())
 	{
+		DebugPrint(L"New Session Failed Response.\n");
 		//セッション作成応答
 		if (newSessionResultCallback_)
 		{
 			newSessionResultCallback_(nullptr, newSessionResultCallbackArg_);
 		}
-		return SessionUpdateResult::Succcess;
+		return SessionUpdateResult::Enum::Succcess;
 	}
-	else if (auto freeSessionMsg = msg->Cast<SpiBridgeStandardMessageFreeSession>())
+	else if (auto freeSessionMsg = msg->Cast<StandardSessionMessageFreeSession>())
 	{
+		DebugPrint(L"Free Session Request.\n");
 		//セッション解放
-		return SessionUpdateResult::Succcess;
+		return SessionUpdateResult::Enum::Succcess;
 	}
-	else if (auto exitMsg = msg->Cast<SpiBridgeStandardMessageExit>())
+	else if (auto exitMsg = msg->Cast<StandardSessionMessageExit>())
 	{
+		DebugPrint(L"Exit Session Request.\n");
 		//終了
 		exitCode_ = 0;
-		return SessionUpdateResult::Exit;
+		return SessionUpdateResult::Enum::Exit;
 	}
 	
 	return Base::UpdateInner(msg);
@@ -141,7 +149,7 @@ int CStandardSession::ExitCode() const
 /// </summary>
 bool CStandardSession::SendNone()
 {
-	SpiBridgeStandardMessageNone msg;
+	StandardSessionMessageNone msg;
 	msg.Init();
 	return SendCommMessage(msg);
 }
@@ -151,7 +159,7 @@ bool CStandardSession::SendNone()
 /// </summary>
 bool CStandardSession::SendExit()
 {
-	SpiBridgeStandardMessageExit msg;
+	StandardSessionMessageExit msg;
 	msg.Init();
 	return SendCommMessage(msg);
 }
@@ -168,7 +176,7 @@ bool CStandardSession::SendNewSession()
 		return false;
 	}
 
-	SpiBridgeStandardMessageNewSession msg;
+	StandardSessionMessageNewSession msg;
 	msg.Init();
 	return SendCommMessage(msg);
 }
@@ -182,7 +190,7 @@ bool CStandardSession::SendNewSession()
 /// <returns></returns>
 bool CStandardSession::SendResponseCreatedSession(int _ProocId, uint32_t _InPipeId, uint32_t _OutPipeId)
 {
-	SpiBridgeStandardMessageResponseCreatedSession msg;
+	StandardSessionMessageResponseCreatedSession msg;
 	msg.Init();
 	msg.procId = _ProocId;
 	msg.inId = _InPipeId;

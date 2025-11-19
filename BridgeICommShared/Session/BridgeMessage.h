@@ -15,24 +15,25 @@ namespace PvlIpc
 	static constexpr GUID s_NamedPipeGuid =
 	{ 0x68803e18, 0x6ab1, 0x4c4e, { 0x8f, 0x71, 0xf6, 0x2c, 0x90, 0x6, 0xfb, 0x89 } };
 
-	constexpr size_t MessageSizeMax = 64;
+	constexpr size_t MessageSizeMax = 256;
 	constexpr uint32_t PipeDefaultWait = 1000;
 	/// <summary>
 	/// 標準メッセージコマンドタイプ
 	/// </summary>
-	enum class SpiBridgeMessageType : int32_t
+	enum class SessionMessageType : int32_t
 	{
 		None = 0,
 		Standard = 1,
+		Instance = 2,
 	};
 
 	/// <summary>
 	/// 基本やりとりメッセージ
 	/// </summary>
 #pragma pack(push, 4) 
-	struct SpiBridgeMessageHeader
+	struct SessionMessageHeader
 	{
-		SpiBridgeMessageType msgType;
+		SessionMessageType msgType;
 		int32_t bytes;
 
 		template<typename T>
@@ -42,7 +43,7 @@ namespace PvlIpc
 	/// <summary>
 	/// 標準メッセージコマンド
 	/// </summary>
-	enum class SpiBridgeStdMessage : int32_t
+	enum class SessionStdMessage : int32_t
 	{
 		None = 0,
 
@@ -60,31 +61,45 @@ namespace PvlIpc
 		Exit = 1000,
 	};
 
-	/// <summary>
-	/// 標準メッセージヘッダー
-	/// </summary>
-	struct SpiBridgeStandardMessageHeader : SpiBridgeMessageHeader
+	template<typename MesssageType, SessionMessageType thisMsgType, MesssageType thisMsg>
+	struct SessionMessageHeaderBase : SessionMessageHeader
 	{
-		static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
-		static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::None;
+		static constexpr SessionMessageType MsgType = thisMsgType;
+		static constexpr MesssageType Message = thisMsg;
 		void Init()
 		{
 			bytes = sizeof(*this);
 			msgType = MsgType;
 			message = Message;
 		}
-		SpiBridgeStdMessage message;
-
+		MesssageType message;
 	};
-	using SpiBridgeStandardMessageNone = SpiBridgeStandardMessageHeader;
+
+	/// <summary>
+	/// 標準メッセージヘッダー
+	/// </summary>
+	using StandardSessionMessageHeader = SessionMessageHeaderBase<SessionStdMessage, SessionMessageType::Standard, SessionStdMessage::None>;
+	//struct StandardSessionMessageHeader : SessionMessageHeader
+	//{
+	//	static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
+	//	static constexpr SessionStdMessage Message = SessionStdMessage::None;
+	//	void Init()
+	//	{
+	//		bytes = sizeof(*this);
+	//		msgType = MsgType;
+	//		message = Message;
+	//	}
+	//	SessionStdMessage message;
+	//};
+	using StandardSessionMessageNone = StandardSessionMessageHeader;
 
 	/// <summary>
 	/// 新規セッション要求メッセージ
 	/// </summary>
-	struct SpiBridgeStandardMessageNewSession : SpiBridgeStandardMessageHeader
+	struct StandardSessionMessageNewSession : StandardSessionMessageHeader
 	{
-		static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
-		static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::NewSession;
+		static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
+		static constexpr SessionStdMessage Message = SessionStdMessage::NewSession;
 		void Init()
 		{
 			bytes = sizeof(*this);
@@ -96,10 +111,10 @@ namespace PvlIpc
 	/// <summary>
 	/// 新規作成通知メッセージ
 	/// </summary>
-	struct SpiBridgeStandardMessageResponseCreatedSession : SpiBridgeStandardMessageHeader
+	struct StandardSessionMessageResponseCreatedSession : StandardSessionMessageHeader
 	{
-		static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
-		static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::CreatedNewSession;
+		static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
+		static constexpr SessionStdMessage Message = SessionStdMessage::CreatedNewSession;
 		void Init()
 		{
 			bytes = sizeof(*this);
@@ -114,10 +129,10 @@ namespace PvlIpc
 	/// <summary>
 	/// 新規失敗通史メッセージ
 	/// </summary>
-	struct SpiBridgeStandardMessageResponseFailedNewSession : SpiBridgeStandardMessageHeader
+	struct StandardSessionMessageResponseFailedNewSession : StandardSessionMessageHeader
 	{
-		static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
-		static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::FailedNewSession;
+		static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
+		static constexpr SessionStdMessage Message = SessionStdMessage::FailedNewSession;
 		void Init()
 		{
 			bytes = sizeof(*this);
@@ -127,10 +142,10 @@ namespace PvlIpc
 		int32_t errorCode;
 	};
 
-	struct SpiBridgeStandardMessageFreeSession : SpiBridgeStandardMessageHeader
+	struct StandardSessionMessageFreeSession : StandardSessionMessageHeader
 	{
-		static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
-		static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::FreeSession;
+		static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
+		static constexpr SessionStdMessage Message = SessionStdMessage::FreeSession;
 		void Init()
 		{
 			bytes = sizeof(*this);
@@ -141,10 +156,10 @@ namespace PvlIpc
 		int32_t sessionId;
 	};
 
-	struct SpiBridgeStandardMessageExit : SpiBridgeStandardMessageHeader
+	struct StandardSessionMessageExit : StandardSessionMessageHeader
 	{
-		static constexpr SpiBridgeMessageType MsgType = SpiBridgeMessageType::Standard;
-		static constexpr SpiBridgeStdMessage Message = SpiBridgeStdMessage::Exit;
+		static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
+		static constexpr SessionStdMessage Message = SessionStdMessage::Exit;
 		void Init()
 		{
 			bytes = sizeof(*this);
@@ -155,12 +170,12 @@ namespace PvlIpc
 #pragma pack(pop) 
 
 	template<typename T>
-	inline T* SpiBridgeMessageHeader::Cast()
+	inline T* SessionMessageHeader::Cast()
 	{
 		static_assert(sizeof(T) < MessageSizeMax, "Message Structure is over the tls buffer size.");
 		auto tThis = reinterpret_cast<T*>(this);
 		bool isOk = T::MsgType == tThis->msgType;
-		if constexpr (!std::is_same_v < SpiBridgeStandardMessageHeader, T>)
+		if constexpr (!std::is_same_v < StandardSessionMessageHeader, T>)
 		{
 			isOk = T::Message == tThis->message ? isOk : false;
 		}

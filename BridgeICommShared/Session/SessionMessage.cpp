@@ -14,11 +14,22 @@ CSessionMessage::CSessionMessage()
 #ifdef _DEBUG
 	debug_ = true;
 #endif
+	readBufferSize_ = 32 * 1024;
+	readBufferOffset_ = 0;
+	readBuffer_ = new uint8_t[readBufferSize_];
 }
 
 CSessionMessage::~CSessionMessage()
 {
+	if (pipe_)
+		delete pipe_;
 }
+
+void CSessionMessage::InitIo(HANDLE duplex, bool isOverlaped)
+{
+	InitIo(duplex, duplex, isOverlaped);
+}
+
 
 void CSessionMessage::InitIo(HANDLE _read, HANDLE _write, bool isOverlaped)
 {
@@ -34,33 +45,87 @@ void CSessionMessage::InitFromStdIo()
 	InitIo(stdIn, stdOut, false);
 }
 
+BOOL CSessionMessage::ReadSync(void* buffer, size_t bytes, LPDWORD lpReaded)
+{
+	if (isOverlapped_)
+	{
+		OVERLAPPED* ol = GetOverlapped();
+		if (!ReadFile(read_, buffer, (DWORD)bytes, nullptr, ol))
+		{
+			auto le = GetLastError();
+			if (le != ERROR_IO_PENDING)
+			{
+				DebugPrint(L"ReadSync Failed. LastError=0x%08x\n", le);
+				return FALSE;
+			}
+		}
+		DWORD readed = 0;
+		auto result = GetOverlappedResult(read_, ol, &readed, TRUE);
+		if (lpReaded)
+			*lpReaded = readed;
+		ReleaseOverlapped(ol);
+		return result;
+	}
+	else
+	{
+		return ReadFile(read_, buffer, (DWORD)bytes, lpReaded, nullptr);
+	}
+}
+
+BOOL CSessionMessage::WriteSync(const void* buffer, size_t bytes, LPDWORD lpWrited)
+{
+	if (isOverlapped_)
+	{
+		OVERLAPPED* ol = GetOverlapped();
+		if (!WriteFile(write_, buffer, (DWORD)bytes, nullptr, ol))
+		{
+			auto le = GetLastError();
+			if (le != ERROR_IO_PENDING)
+			{
+				DebugPrint(L"WriteSync Failed. LastError=0x%08x\n", le);
+				return FALSE;
+			}
+		}
+		DWORD wrote = 0;
+		auto result = GetOverlappedResult(write_, ol, &wrote, TRUE);
+		if (lpWrited)
+			*lpWrited = wrote;
+		ReleaseOverlapped(ol);
+		return result;
+	}
+	else
+	{
+		return WriteFile(write_, buffer, (DWORD)bytes, lpWrited, nullptr);
+	}
+}
 
 /// <summary>
 /// メッセージの読み込み
 /// </summary>
 /// <returns></returns>
-SpiBridgeMessageHeader* CSessionMessage::ReadMessageBase()
+SessionMessageHeader* CSessionMessage::ReadMessageBase()
 {
-	thread_local uint64_t buffer[256];//2048 bytes
-	SpiBridgeMessageHeader* header = (SpiBridgeMessageHeader*)buffer;
+	if (readBufferOffset_ + MessageSizeMax > readBufferSize_)
+	{
+		readBufferOffset_ = 0;
+	}
 
-	if( ReadFile(read_, header, sizeof(*header), nullptr, nullptr) == false)
+	SessionMessageHeader* header = (SessionMessageHeader*)readBuffer_;
+	if( ReadSync(header, sizeof(*header)) == false)
 	{
 		return nullptr;
 	}
 
-	auto msgBodySize = header->bytes - sizeof(SpiBridgeMessageHeader);
-	if (ReadFile(read_, ((int8_t*)header) + sizeof(*header), (DWORD)msgBodySize, nullptr, nullptr) == false)
+	auto msgBodySize = (int)(header->bytes - sizeof(SessionMessageHeader));
+	if (ReadSync(((int8_t*)header) + sizeof(*header), (DWORD)msgBodySize) == false)
 	{
 		return nullptr;
 	}
-	
-	if (debug_)
-	{
-		printf("Recive Message Type=%d, Bytes=%d\n", (int)header->msgType, header->bytes);
-	}
+	readBufferOffset_ += (header->bytes + 8) & (~7);
 
-	return (SpiBridgeMessageHeader*)header;
+	DebugPrint(L"Read Message Body Bytes=%d\n", msgBodySize);
+
+	return (SessionMessageHeader*)header;
 
 }
 
@@ -69,17 +134,11 @@ SpiBridgeMessageHeader* CSessionMessage::ReadMessageBase()
 /// </summary>
 /// <param name="msg">送信するメッセージのヘッダー。msg.bytesでバイト数が指定され、WriteFileにそのサイズで渡される。debug_が有効な場合はmsg.msgTypeとmsg.bytesがログ出力される。</param>
 /// <returns>送信が成功した場合はtrue、失敗した場合はfalseを返すことを意図している。ただし、isOverlapped_がtrueのコードパスでは現行実装が戻り値を返さない可能性があり、未定義動作になる恐れがある。</returns>
-bool CSessionMessage::SendCommMessage(const SpiBridgeMessageHeader& msg, const char* msgName)
+bool CSessionMessage::SendCommMessage(const SessionMessageHeader& msg, const char* msgName)
 {
-	if (debug_) 
-	{
-		char buf[4096] = {};
-		sprintf_s(buf, "Send Message Type=%d, Bytes=%d\n", (int)msg.msgType, msg.bytes);
-		printf(buf);
-		OutputDebugStringA(buf);
-	}
+	DebugPrint(L"Send Message: %S, Type=%d, Bytes=%d\n", msgName, (int)msg.msgType, msg.bytes);
 
-	return WriteFile(write_, &msg, msg.bytes, nullptr, nullptr);
+	return WriteSync(&msg, msg.bytes);
 }
 
 /// <summary>
@@ -93,7 +152,8 @@ OVERLAPPED* CSessionMessage::GetOverlapped()
 	{
 		overlapPoolCs_.Leave();
 		auto ol = new OVERLAPPED();
-		ol->Internal = STATUS_PENDING;
+		ZeroMemory(ol, sizeof(OVERLAPPED));
+		ol->Internal = 0;
 		ol->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 		return ol;
 	}
@@ -102,6 +162,10 @@ OVERLAPPED* CSessionMessage::GetOverlapped()
 		auto ol = overlapPool_.back();
 		overlapPool_.pop_back();
 		overlapPoolCs_.Leave();
+		auto evt = ol->hEvent;
+		ZeroMemory(ol, sizeof(OVERLAPPED));
+		ol->Internal = 0;
+		ol->hEvent = evt;
 		return ol;
 	}
 }
@@ -124,14 +188,28 @@ SessionUpdateResult CSessionMessage::Update()
 	auto msg = ReadMessageBase();
 	if (msg)
 	{
-		return UpdateInner((SpiBridgeStandardMessageHeader*)msg);
+		return UpdateInner(msg);
 	}
-	return SessionUpdateResult::NoneMessage;
+	return SessionUpdateResult::Enum::NoneMessage;
 }
 
-SessionUpdateResult CSessionMessage::UpdateInner(SpiBridgeStandardMessageHeader* msg)
+SessionUpdateResult CSessionMessage::UpdateInner(SessionMessageHeader* msg)
 {
-	return SessionUpdateResult::InvlidMessageType;
+	return SessionUpdateResult::Enum::InvlidMessageType;
 }
 
 
+void CSessionMessage::DebugPrint(const wchar_t* string, ...)
+{
+	if (debug_)
+	{
+		wchar_t buffer[4096];
+
+		va_list args;
+		va_start(args, string);
+		vwprintf(string, args);
+		_vsnwprintf_s(buffer, _countof(buffer), _TRUNCATE, string, args);
+		va_end(args);
+		OutputDebugStringW(buffer);
+	}
+}

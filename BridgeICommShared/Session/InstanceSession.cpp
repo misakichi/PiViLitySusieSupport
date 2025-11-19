@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "InstanceSession.h"
+#include "Pipe.h"
 #include <string>
 
 using namespace PvlIpc;
@@ -14,9 +15,9 @@ CInstanceSession::CInstanceSession()
 	}
 }
 
-CInstanceSession::~CInstanceSession()
-{
-}
+//CInstanceSession::~CInstanceSession()
+//{
+//}
 static std::wstring MakePipeFullName(const wchar_t* name)
 {
 	return std::wstring(L"\\\\.\\pipe\\") + name;
@@ -28,29 +29,38 @@ static std::wstring MakePipeFullName(const wchar_t* name)
 /// <param name="inName"></param>
 /// <param name="outName"></param>
 /// <returns></returns>
-bool CInstanceSession::InitServer(const wchar_t* inName, const wchar_t* outName, bool isOverlaped)
+bool CInstanceSession::InitServer(const wchar_t* name, bool isOverlaped)
 {
 	for (int i = 0; i < OverlapHandles; i++)
 		overlapEvent_[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	int withOverlapped = isOverlaped ? FILE_FLAG_OVERLAPPED : 0;
-	auto inPipe = CreateNamedPipeW(MakePipeFullName(inName).c_str(), PIPE_ACCESS_INBOUND | withOverlapped, 0, 2, MessageSizeMax * 10, MessageSizeMax * 10, PipeDefaultWait, NULL);
-	auto outPipe = CreateNamedPipeW(MakePipeFullName(outName).c_str(), PIPE_ACCESS_OUTBOUND | withOverlapped, 0, 2, MessageSizeMax * 10, MessageSizeMax * 10, PipeDefaultWait, NULL);
-	InitIo(inPipe, outPipe, isOverlaped);
-	if(inPipe!=INVALID_HANDLE_VALUE && outPipe!=INVALID_HANDLE_VALUE)
+
+	PipeCreateOptions options;
+	options.defaultWaitTimeMs = PipeDefaultWait;
+	options.inBufferSize = MessageSizeMax * 10;
+	options.outBufferSize = MessageSizeMax * 10;
+	options.isOverlaped = isOverlaped;
+	auto fullName = MakePipeFullName(name);
+	auto pipe = new Pipe();
+	if(pipe->Create(fullName.c_str(), &options))
 	{
-		OVERLAPPED ol1 = overlap_[0];
-		ol1.Internal = STATUS_PENDING;
-		ol1.hEvent = overlapEvent_[0];
-		OVERLAPPED ol2 = overlap_[1];
-		ol2.Internal = STATUS_PENDING;
-		ol2.hEvent = overlapEvent_[1];
-		ConnectNamedPipe(read_, &ol1);
-		ConnectNamedPipe(write_, &ol2);
+		DebugPrint(L"Pipe %s created.\n", fullName.c_str());
+		InitIo(*pipe, isOverlaped);
+		pipe_ = pipe;
+		for (int i = 0; i < OverlapHandles; i++)
+		{
+			overlap_[i].Internal = STATUS_PENDING;
+			overlap_[i].hEvent = overlapEvent_[i];
+		}
+		ConnectNamedPipe(*pipe_, &overlap_[0]);
+		StartProcessThread();
 		return true;
 	}
 	else
 	{
+		DebugPrint(L"Failed to create pipe %s(Last error:0x%08x)\n", fullName.c_str(), GetLastError());
+		delete pipe;
 		Terminate();
 		return false;
 	}
@@ -59,25 +69,35 @@ bool CInstanceSession::InitServer(const wchar_t* inName, const wchar_t* outName,
 /// <summary>
 /// クライアント初期化
 /// </summary>
-bool CInstanceSession::InitClient(const wchar_t* inName, const wchar_t* outName, bool isOverlaped)
+bool CInstanceSession::InitClient(const wchar_t* name, bool isOverlaped)
 {
 	for (int i = 0; i < OverlapHandles; i++)
 		overlapEvent_[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-	int flag = isOverlaped ? FILE_FLAG_OVERLAPPED : 0;
-	auto inPipe = CreateFileW(MakePipeFullName(outName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, flag, NULL);
-	auto outPipe = CreateFileW(MakePipeFullName(inName).c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, flag, NULL);
-	InitIo(inPipe, outPipe, isOverlaped);
-	if (inPipe != INVALID_HANDLE_VALUE && outPipe != INVALID_HANDLE_VALUE)
+	auto fullName = MakePipeFullName(name);
+	auto pipe = new Pipe();
+	PipeConnectOptions options;
+	options.isOverlaped = isOverlaped;
+	options.direction = PipeDirection::InOut;
+
+	if (pipe->Connect(name, &options))
 	{
+		pipe_ = pipe;
+		InitIo(*pipe, isOverlaped);
+		StartProcessThread();
 		return true;
 	}
 	else
 	{
+		delete pipe;
 		Terminate();
 		return false;
 	}
 }
+
+/// <summary>
+/// 終了処理
+/// </summary>
 void CInstanceSession::Terminate()
 {
 	for (int i = 0; i < OverlapHandles; i++)
@@ -87,31 +107,42 @@ void CInstanceSession::Terminate()
 			CloseHandle(overlapEvent_[i]);
 		}	
 	}
-	if( read_ != INVALID_HANDLE_VALUE )
-	{
-		CloseHandle(read_);
-	}
-	if( write_ != INVALID_HANDLE_VALUE )
-	{
-		CloseHandle(write_);
-	}
-	InitIo(INVALID_HANDLE_VALUE,INVALID_HANDLE_VALUE,false);
+
+	InitIo(INVALID_HANDLE_VALUE,false);
 	for (int i = 0; i < OverlapHandles; i++)
 		overlapEvent_[i] = INVALID_HANDLE_VALUE;
 
 }
 
-bool CInstanceSession::Update()
+/// <summary>
+/// メッセージ処理スレッド開始
+/// </summary>
+void CInstanceSession::StartProcessThread()
 {
-	//if (ret >= WAIT_OBJECT_0 && ret <= WAIT_OBJECT_0 + 1)
-	//{	//待機完了
-	//}
-	//else
-	//{
-	//	//失敗した
-	//}
-
-
-	return true;
+	CreateThread(NULL, 0, [](void* p) -> DWORD
+		{
+			auto instance = ((CInstanceSession*)p);
+			instance->running_ = true;
+			SessionUpdateResult result;
+			while ((result = instance->Update()).IsFailed() == false)
+			{
+				if(result == SessionUpdateResult::Enum::Timeout)
+				{
+					Sleep(0);
+					continue;
+				}
+			}
+			instance->running_ = false;
+			return 0;
+		}, this, 0, NULL);
 }
 
+/// <summary>
+/// 更新処理
+/// </summary>
+/// <param name="msg"></param>
+/// <returns></returns>
+SessionUpdateResult CInstanceSession::UpdateInner(SessionMessageHeader* msg)
+{
+	return Base::UpdateInner(msg);
+}
