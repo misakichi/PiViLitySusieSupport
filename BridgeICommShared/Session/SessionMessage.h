@@ -47,27 +47,60 @@ namespace PvlIpc
 	class CSessionMessage
 	{
 	public:
+		static constexpr int SessionTimeoutMsec = 1000;
+		static constexpr int TimeoutNgThreshold = 10;
 		CSessionMessage();
 		virtual ~CSessionMessage();
 		void InitFromStdIo();
-		void InitIo(HANDLE duplex, bool isOverlaped);
+		void InitIo(Pipe& duplex);
 		void InitIo(HANDLE _read, HANDLE _write, bool isOverlaped);
 		void SetEnableDebug(bool enable) { debug_ = true; }
 		SessionUpdateResult Update();
 
+		bool IsRunning() const { return isRunning_ ; }
+
 	protected:
 		SessionMessageHeader* ReadMessageBase();
-		bool SendCommMessage(const SessionMessageHeader& msg, const char* msgName = "");
+		bool SendCommMessage(const SessionMessageHeader& msg, const wchar_t* msgName = L"");
 
-
+		/// <summary>
+		/// 非同期用オーバーラップ構造体をプールから取得、ない場合は新規作成
+		/// </summary>
+		/// <returns></returns>
 		OVERLAPPED* GetOverlapped();
+
+		/// <summary>
+		/// 非同期用オーバーラップ構造体をプールへ返却
+		/// </summary>
+		/// <param name="ol"></param>
 		void ReleaseOverlapped(OVERLAPPED* ol);
 
 		virtual SessionUpdateResult UpdateInner(SessionMessageHeader* msg);
-		void DebugPrint(const wchar_t* format, ...);
 
+		/// <summary>
+		/// 同期通信での読み取り
+		/// </summary>
+		/// <param name="buffer"></param>
+		/// <param name="bytes"></param>
+		/// <param name="lpReaded"></param>
+		/// <returns></returns>
 		BOOL ReadSync(void* buffer, size_t bytes, LPDWORD lpReaded = nullptr);
+
+		/// <summary>
+		/// 同期通信での書き込み
+		/// </summary>
+		/// <param name="buffer"></param>
+		/// <param name="bytes"></param>
+		/// <param name="lpWrited"></param>
+		/// <returns></returns>
 		BOOL WriteSync(const void* buffer, size_t bytes, LPDWORD lpWrited = nullptr);
+
+		/// <summary>
+		/// 通信制御スレッド共通関数
+		/// </summary>
+		/// <returns></returns>
+		int ThreadFunc();
+
 
 	protected:
 		Pipe* pipe_ = nullptr;
@@ -75,6 +108,7 @@ namespace PvlIpc
 		HANDLE	write_;
 		bool	isOverlapped_ = false;
 		bool	debug_ = false;
+		bool	isRunning_ = false;
 
 		uint8_t* readBuffer_ = nullptr;
 		size_t	readBufferSize_ = 0;

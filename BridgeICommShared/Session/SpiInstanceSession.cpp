@@ -35,7 +35,7 @@ int CSpiInstanceSession::LoadPlugin(const wchar_t* pluginPath)
 	loadMsg->bytes = bytes;
 	
 	ResetEvent(loadPluginEvent_);
-	SendCommMessage(*loadMsg, "SpiSessionMessageLoadPlugin");
+	SendCommMessage(*loadMsg, L"SpiSessionMessageLoadPlugin");
 	WaitForSingleObject(loadPluginEvent_, INFINITE);
 
 	return pluginStatus_ == PluginStatus::Loaded ? 0 : -2;

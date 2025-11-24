@@ -4,6 +4,9 @@
     <Filter Include="Session">
       <UniqueIdentifier>{63540dca-331b-46a2-89ce-94fd13a9c267}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Debug">
+      <UniqueIdentifier>{2ee48e5b-13f5-4540-b43c-00ae283da63a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\BridgeMessage.h">
@@ -23,6 +26,10 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.h">
       <Filter>Session</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)WinUtil.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Debug\Console.h">
+      <Filter>Debug</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\InstanceSession.cpp">
@@ -38,6 +45,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Pipe.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.cpp">
       <Filter>Session</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)WinUtil.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Debug\Console.cpp">
+      <Filter>Debug</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "InstanceSession.h"
 #include "Pipe.h"
+#include "Debug/Console.h"
 #include <string>
 
 using namespace PvlIpc;
@@ -45,8 +46,8 @@ bool CInstanceSession::InitServer(const wchar_t* name, bool isOverlaped)
 	auto pipe = new Pipe();
 	if(pipe->Create(fullName.c_str(), &options))
 	{
-		DebugPrint(L"Pipe %s created.\n", fullName.c_str());
-		InitIo(*pipe, isOverlaped);
+		Debug::Print(L"Instance Pipe %s created.\n", fullName.c_str());
+		InitIo(*pipe);
 		pipe_ = pipe;
 		for (int i = 0; i < OverlapHandles; i++)
 		{
@@ -59,7 +60,10 @@ bool CInstanceSession::InitServer(const wchar_t* name, bool isOverlaped)
 	}
 	else
 	{
-		DebugPrint(L"Failed to create pipe %s(Last error:0x%08x)\n", fullName.c_str(), GetLastError());
+		Debug::PrintLastErrorMessage();
+		Debug::Print(L"Failed to create pipe %s\n", fullName.c_str());
+		Debug::PrintLastErrorMessage();
+
 		delete pipe;
 		Terminate();
 		return false;
@@ -72,23 +76,27 @@ bool CInstanceSession::InitServer(const wchar_t* name, bool isOverlaped)
 bool CInstanceSession::InitClient(const wchar_t* name, bool isOverlaped)
 {
 	for (int i = 0; i < OverlapHandles; i++)
-		overlapEvent_[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		overlapEvent_[i] = PVL_CHECK_HANDLE(CreateEvent(NULL, FALSE, FALSE, NULL));
 
 	auto fullName = MakePipeFullName(name);
 	auto pipe = new Pipe();
 	PipeConnectOptions options;
 	options.isOverlaped = isOverlaped;
 	options.direction = PipeDirection::InOut;
+	Debug::Print(L"Instance Pipe Connectting....\n");
 
-	if (pipe->Connect(name, &options))
+	if (pipe->Connect(fullName.c_str(), &options))
 	{
+		Debug::Print(L"Instance Pipe %s connected.\n", fullName.c_str());
 		pipe_ = pipe;
-		InitIo(*pipe, isOverlaped);
+		InitIo(*pipe);
 		StartProcessThread();
 		return true;
 	}
 	else
 	{
+		Debug::PrintLastErrorMessage();
+		Debug::Print(L"Failed to connect pipe %s\n", fullName.c_str());
 		delete pipe;
 		Terminate();
 		return false;
@@ -108,7 +116,7 @@ void CInstanceSession::Terminate()
 		}	
 	}
 
-	InitIo(INVALID_HANDLE_VALUE,false);
+	InitIo(INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, false);
 	for (int i = 0; i < OverlapHandles; i++)
 		overlapEvent_[i] = INVALID_HANDLE_VALUE;
 
@@ -119,22 +127,24 @@ void CInstanceSession::Terminate()
 /// </summary>
 void CInstanceSession::StartProcessThread()
 {
-	CreateThread(NULL, 0, [](void* p) -> DWORD
+	isRunning_ = true;
+	if (CreateThread(NULL, 0, [](void* p) -> DWORD
 		{
+			Debug::Print(L"Instance Session Thread Started(waiting connect....).\n");
 			auto instance = ((CInstanceSession*)p);
+			WaitForSingleObject(instance->overlapEvent_[0], INFINITE);
+			Debug::Print(L"Instance Session Thread Connected.\n");
 			instance->running_ = true;
-			SessionUpdateResult result;
-			while ((result = instance->Update()).IsFailed() == false)
-			{
-				if(result == SessionUpdateResult::Enum::Timeout)
-				{
-					Sleep(0);
-					continue;
-				}
-			}
+
+			instance->ThreadFunc();
+
+			Debug::Print(L"Shutdown Instance Session Thread.\n");
 			instance->running_ = false;
 			return 0;
-		}, this, 0, NULL);
+		}, this, 0, NULL) == NULL)
+	{
+		isRunning_ = false;
+	}
 }
 
 /// <summary>

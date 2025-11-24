@@ -5,6 +5,10 @@
 #include <vector>
 #include <string>
 #include <stdio.h>
+#include <conio.h>
+#include "Debug/Console.h"
+#include "Pipe.h"
+#include <locale.h>
 
 int WINAPI WinMain(
 	_In_ HINSTANCE hInstance, 
@@ -37,8 +41,6 @@ int WINAPI WinMain(
 	AllocConsoleWithOptions(&options, nullptr);
 	stdIn = GetStdHandle(STD_INPUT_HANDLE);
 	stdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-
 	// 標準入出力をコンソールに再関連付け
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);  // printf 出力用
@@ -50,10 +52,9 @@ int WINAPI WinMain(
 	//setvbuf(stdout, lbuf, _IOLBF, lineBufSize);
 	setvbuf(stdout, NULL, _IONBF, 0);
 
-	// printf が使える
-	printf("Hello from printf!\n");
-	printf("Input something: ");
-
+	SetConsoleOutputCP(CP_ACP);
+	SetConsoleCP(CP_ACP);
+	setlocale(LC_ALL, "");
 
 	const char* pipeName = nullptr;
 	int withOverlap = 0;
@@ -80,34 +81,49 @@ int WINAPI WinMain(
 
 	printf("PipeName=%s\n", pipeName ? pipeName : "(null)");
 
-
+	PvlIpc::Pipe* pipe = nullptr;
 	HANDLE pipeIo = NULL;
 	if (pipeName)
 	{
+#if 1
+		session.ConnectToParent(pipeName, withOverlap);
+#else
+		printf("Pipe New:");
+		pipe = new PvlIpc::Pipe();
+		printf("%p\n", pipe);
+
 		printf("Connecting to pipe %s\n", pipeName);
-		pipeIo = CreateFileA(
-			pipeName,
-			GENERIC_READ | GENERIC_WRITE,
-			0,
-			NULL,
-			OPEN_EXISTING,
-			withOverlap,
-			NULL);
-		auto result = GetLastError();
+		PvlIpc::PipeConnectOptions options;
+		options.isOverlaped = withOverlap != 0;
+		if (pipe->Connect(pipeName, &options))
+		{
+			printf("Pipe connected.\n");
+		}
+		else
+		{
+			printf("Failed to connect pipe %s\n", pipeName);
+		}
+		session.InitIo(*pipe, withOverlap != 0);
+#endif
+		printf("Init by pipe.\n");
 
-		printf("Connecting to pipes(%s) \n 0x%p(0x%08x)\n", withOverlap!=0 ? "overlaped" : "", pipeIo, result);
-
-		session.InitIo(pipeIo, pipeIo, withOverlap != 0);
 	}
 	else
 	{
-		session.InitFromStdIo();
+		delete[] cmdLineStr;
+		return -10;
 	}
 	delete[] cmdLineStr;
-	while (session.Update()==PvlIpc::SessionUpdateResult::Enum::Succcess)
-		;
 
+	while (!session.IsRunning())
+		Sleep(1000);
+
+#ifdef _DEBUG
+	printf("hit anykey to exit.\n");
+	(void)_getch();
+#endif
 	FreeConsole();
+	delete pipe;
 
 	//メッセージ切れによる終了は不正
 	auto exitCode =  session.ExitCode();

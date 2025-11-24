@@ -16,7 +16,9 @@ namespace PvlSppComm
 	{
 	public:
 		StandardComms();
-		bool Initialize();
+		~StandardComms();
+
+		bool StartupServer();
 		bool Terminate();
 
 		bool SendNone();
@@ -27,15 +29,15 @@ namespace PvlSppComm
 		property bool IsRunning{ bool get() { return isRunnning_; } }
 
 		void RecieveNewSession(PvlIpc::CInstanceSession*);
-		event ReciveNewSessionDelegate^ OnReciveNewSession;
-		//{
-		//	void add(ReciveNewSessionDelegate^ h) {
-		//		newSpiSessionoHandler_ = static_cast<ReciveNewSessionDelegate^>(System::Delegate::Combine(newSpiSessionoHandler_, h));
-		//	}
-		//	void remove(ReciveNewSessionDelegate^ h) {
-		//		newSpiSessionoHandler_ = static_cast<ReciveNewSessionDelegate^>(System::Delegate::Remove(newSpiSessionoHandler_, h));
-		//	}
-		//}
+		event ReciveNewSessionDelegate^ OnReciveNewSession
+		{
+			void add(ReciveNewSessionDelegate^ h) {
+				newSpiSessionoHandler_ = static_cast<ReciveNewSessionDelegate^>(System::Delegate::Combine(newSpiSessionoHandler_, h));
+			}
+			void remove(ReciveNewSessionDelegate^ h) {
+				newSpiSessionoHandler_ = static_cast<ReciveNewSessionDelegate^>(System::Delegate::Remove(newSpiSessionoHandler_, h));
+			}
+		}
 
 
 	private:
@@ -43,7 +45,8 @@ namespace PvlSppComm
 		bool	isRunnning_ = false;
 		PvlIpc::Pipe* ioPipe_ = nullptr;
 		PvlIpc::CStandardSession* session_ = nullptr;
+		void* thisHandle_ = nullptr;
 
-		//ReciveNewSessionDelegate^ newSpiSessionoHandler_;
+		ReciveNewSessionDelegate^ newSpiSessionoHandler_;
 	};
 }

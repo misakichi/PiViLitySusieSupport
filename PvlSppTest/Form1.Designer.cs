@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             _btnNewSession = new Button();
-            _lstSessions = new ListBox();
+            _lsvList = new ListView();
             SuspendLayout();
             // 
             // _btnNewSession
@@ -42,21 +42,21 @@
             _btnNewSession.UseVisualStyleBackColor = true;
             _btnNewSession.Click += _btnNewSession_Click;
             // 
-            // _lstSessions
+            // _lsvList
             // 
-            _lstSessions.FormattingEnabled = true;
-            _lstSessions.ItemHeight = 25;
-            _lstSessions.Location = new Point(194, 44);
-            _lstSessions.Name = "_lstSessions";
-            _lstSessions.Size = new Size(373, 304);
-            _lstSessions.TabIndex = 1;
+            _lsvList.Location = new Point(172, 29);
+            _lsvList.Name = "_lsvList";
+            _lsvList.Size = new Size(1143, 409);
+            _lsvList.TabIndex = 1;
+            _lsvList.UseCompatibleStateImageBehavior = false;
+            _lsvList.View = View.Details;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
-            Controls.Add(_lstSessions);
+            ClientSize = new Size(1490, 450);
+            Controls.Add(_lsvList);
             Controls.Add(_btnNewSession);
             Name = "Form1";
             Text = "Form1";
@@ -68,6 +68,6 @@
         #endregion
 
         private Button _btnNewSession;
-        private ListBox _lstSessions;
+        private ListView _lsvList;
     }
 }

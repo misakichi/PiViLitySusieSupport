@@ -17,8 +17,11 @@ namespace PvlIpc
 		using Base = CSessionMessage;
 
 		CStandardSession();
-		~CStandardSession();
-		StandardSessionMessageHeader* ReadMessage();
+		~CStandardSession() override;
+
+		bool StartupServer();
+		bool ConnectToParent(const wchar_t* pipeName, bool isOverlap);
+		bool ConnectToParent(const char* pipeName, bool isOverlap);
 
 		int ExitCode() const;
 
@@ -75,7 +78,7 @@ namespace PvlIpc
 		SessionUpdateResult UpdateInner(SessionMessageHeader* msg) override;
 
 	private:
-		static DWORD __stdcall SessionThreadEntry(void* p);
+		void StartProcessThread();
 
 		bool CraetePipeName(int procId, int _SessionId, const wchar_t* _SuffixStr, Name256Buffer& _Name);
 		int exitCode_ = -1;
@@ -90,6 +93,9 @@ namespace PvlIpc
 		//セッション作成用コールバック
 		NewSessionCreateCallback	newSessionCreateCallback_ = nullptr;
 		void*						newSessionCreateCallbackArg_ = nullptr;
+
+		//子プロセス
+		HANDLE process_ = NULL;
 
 	};
 

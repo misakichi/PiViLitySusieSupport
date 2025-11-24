@@ -15,19 +15,23 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)CriticalSection.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Debug\Console.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Pipe.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\BridgeMessage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\InstanceSession.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\SessionMessage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Session\StandardSession.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)WinUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)CriticalSection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Debug\Console.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Pipe.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\InstanceSession.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\SessionMessage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\SpiInstanceSession.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Session\StandardSession.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WinUtil.cpp" />
   </ItemGroup>
 </Project>

@@ -23,8 +23,9 @@ namespace PvlIpc
 	enum class SessionMessageType : int32_t
 	{
 		None = 0,
-		Standard = 1,
-		Instance = 2,
+		Core,
+		Standard,
+		Instance,
 	};
 
 	/// <summary>
@@ -39,6 +40,14 @@ namespace PvlIpc
 		template<typename T>
 		T* Cast();
 	};
+
+	enum class SessionCoreMessage : int32_t
+	{
+		None = 0,
+		KeepAlive,
+		Timeout
+	};
+
 
 	/// <summary>
 	/// 標準メッセージコマンド
@@ -76,9 +85,22 @@ namespace PvlIpc
 	};
 
 	/// <summary>
+	/// コアメッセージヘッダー
+	/// </summary>
+	using CoreSessionMessageHeader = SessionMessageHeaderBase<SessionCoreMessage, SessionMessageType::Core, SessionCoreMessage::None>;
+	/// <summary>
 	/// 標準メッセージヘッダー
 	/// </summary>
 	using StandardSessionMessageHeader = SessionMessageHeaderBase<SessionStdMessage, SessionMessageType::Standard, SessionStdMessage::None>;
+	/// <summary>
+	/// インスタンスメッセージヘッダー
+	/// </summary>
+	using InstanceSessionMessageHeader = SessionMessageHeaderBase<SessionStdMessage, SessionMessageType::Instance, SessionStdMessage::None>;
+
+	using CoreSessionMessageNone = CoreSessionMessageHeader;
+	using CoreSessionMessageKeepAlive = SessionMessageHeaderBase<SessionCoreMessage, SessionMessageType::Core, SessionCoreMessage::KeepAlive>;
+	using CoreSessionMessageTimeout = SessionMessageHeaderBase<SessionCoreMessage, SessionMessageType::Core, SessionCoreMessage::Timeout>;
+
 	//struct StandardSessionMessageHeader : SessionMessageHeader
 	//{
 	//	static constexpr SessionMessageType MsgType = SessionMessageType::Standard;
@@ -175,9 +197,20 @@ namespace PvlIpc
 		static_assert(sizeof(T) < MessageSizeMax, "Message Structure is over the tls buffer size.");
 		auto tThis = reinterpret_cast<T*>(this);
 		bool isOk = T::MsgType == tThis->msgType;
-		if constexpr (!std::is_same_v < StandardSessionMessageHeader, T>)
+		if (isOk)
 		{
-			isOk = T::Message == tThis->message ? isOk : false;
+			if constexpr (!std::is_same_v < StandardSessionMessageHeader, T> && StandardSessionMessageHeader::MsgType==T::MsgType)
+			{
+				isOk = T::Message == tThis->message ? isOk : false;
+			}
+			else if constexpr (!std::is_same_v < CoreSessionMessageHeader, T> && CoreSessionMessageHeader::MsgType == T::MsgType)
+			{
+				isOk = T::Message == tThis->message ? isOk : false;
+			}
+			else if constexpr (!std::is_same_v < InstanceSessionMessageHeader, T> && InstanceSessionMessageHeader::MsgType == T::MsgType)
+			{
+				isOk = T::Message == tThis->message ? isOk : false;
+			}
 		}
 		return isOk ? tThis : nullptr;
 	}

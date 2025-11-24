@@ -1,30 +1,49 @@
 using PvlSppComm;
+using System.ComponentModel;
 
 namespace PvlSppTest
 {
     public partial class Form1 : Form
     {
         StandardComms _standardComms;
+
+        class SpiSessionInfo : ListViewItem
+        {
+            public required PvlSppComm.SpiInstanceComms spi;
+
+            public override string ToString()
+            {
+                return "No Spi Session";
+            }
+
+        }
+
         public Form1()
         {
             _standardComms = new();
             _standardComms.OnReciveNewSession += (s) =>
             {
-                _lstSessions.Items.Add($"New Session: {s}");
+                BeginInvoke(() =>
+                {
+                    var spiInfo = new SpiSessionInfo() { spi = s };
+                    _lsvList.Items.Add(spiInfo);
+
+                } );
             };
             InitializeComponent();
+            
+
 
         }
 
 
-
+        
         private void Form1_Load(object sender, EventArgs e)
         {
-            _standardComms.Initialize();
+            _standardComms.StartupServer();
             while (_standardComms.IsRunning == false)
                 System.Threading.Thread.Sleep(1000);
 
-            _standardComms.Initialize();
         }
         
         protected override void OnFormClosed(FormClosedEventArgs e)

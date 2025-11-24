@@ -8,13 +8,13 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="Session\SpiInstanceSession.cpp">
+    <ClCompile Include="Session\SpiInstanceSession32.cpp">
       <Filter>Session</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Session\SpiInstanceSession.h">
+    <ClInclude Include="Session\SpiInstanceSession32.h">
       <Filter>Session</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,7 +2,7 @@
 #include "StandardComms.h"
 #include "InstanceComms.h"
 #include "SpiInstanceComms.h"
-
+#include "Debug/Console.h"
 #include "Session/BridgeMessage.h"
 #include "Session/StandardSession.h"
 #include "Session/SpiInstanceSession.h"
@@ -16,6 +16,10 @@ using namespace System::Runtime::InteropServices;
 StandardComms::StandardComms()
 {
 }
+StandardComms::~StandardComms()
+{
+    Terminate();
+}
 
 static void s_callbackFunc(PvlIpc::CInstanceSession* newClientSession, void* arg)
 {
@@ -24,21 +28,31 @@ static void s_callbackFunc(PvlIpc::CInstanceSession* newClientSession, void* arg
     comms->RecieveNewSession(newClientSession);
 }
 
-DWORD __stdcall StandardSessionThreadEntry(void* p)
-{
-    auto session = ((PvlIpc::CStandardSession*)p);
-    while (session->Update().IsFailed() == false)
-    {
-    }
-    delete session;
-	return 0;
-}
 
-bool StandardComms::Initialize()
+/// <summary>
+/// 名前付きパイプを作成し、外部ブリッジプロセスを起動してセッションを初期化し、セッション用スレッドを開始します。既に実行中の場合は初期化を行いません。
+/// </summary>
+/// <returns>初期化とプロセス起動に成功して通信が開始された場合にtrueを返します。既に実行中であるか、初期化や起動に失敗した場合はfalseを返します。</returns>
+bool StandardComms::StartupServer()
 {
 	if (isRunnning_)
 		return false;
     
+#if 1
+    session_ = new PvlIpc::CStandardSession();
+    if (session_->StartupServer())
+    {
+        GCHandle handle = GCHandle::Alloc(this);
+        thisHandle_ = GCHandle::ToIntPtr(handle).ToPointer();
+        session_->SetNewSessionResultCallback(s_callbackFunc, thisHandle_);
+        isRunnning_ = true;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+#else
     const wchar_t * pipeBaseName = L"\\\\.\\pipe\\PvlSppComm_In_";
     wchar_t name[256];
     auto curProcID = GetCurrentProcessId();
@@ -87,9 +101,8 @@ bool StandardComms::Initialize()
 		session_->SetNewSessionResultCallback(s_callbackFunc, GCHandle::ToIntPtr(thisHandle).ToPointer());
         session_->InitIo(*pipe, true);
         ioPipe_ = pipe;
-		//_beginthreadex(nullptr, 0, StandardSessionThreadEntry, session_, 0, nullptr);
-		auto th = CreateThread(nullptr, 0, StandardSessionThreadEntry, session_, 0, nullptr);
-		SetThreadDescription(th, L"PvlSppComm::StandardComms::SessionThread");
+		if(auto th = CreateThread(nullptr, 0, StandardSessionThreadEntry, session_, 0, nullptr))
+		    SetThreadDescription(th, L"PvlSppComm::StandardComms::SessionThread");
     }
     else
     {
@@ -100,17 +113,23 @@ bool StandardComms::Initialize()
 
 	return isRunnning_;
 	return false;
+#endif
 }
+
 
 bool StandardComms::Terminate()
 {
+    if (thisHandle_)
+    {
+        GCHandle::FromIntPtr((System::IntPtr)thisHandle_).Free();
+        thisHandle_ = nullptr;
+    }
     if (isRunnning_)
     {
         SendExit();
 
         WaitForSingleObject(process_, 60 * 1000);//1 minites
         delete session_;
-        delete ioPipe_;
         CloseHandle(process_);
         ioPipe_ = nullptr;
         process_ = nullptr;
@@ -140,7 +159,8 @@ void StandardComms::RecieveNewSession(PvlIpc::CInstanceSession* newInstance)
     if (auto spiSession = dynamic_cast<PvlIpc::CSpiInstanceSession*>(newInstance))
     {
         auto spiComms = gcnew SpiInstanceComms(spiSession);
-        OnReciveNewSession(spiComms);
+        if(newSpiSessionoHandler_)
+            newSpiSessionoHandler_->Invoke(spiComms);
     }
 }
 
